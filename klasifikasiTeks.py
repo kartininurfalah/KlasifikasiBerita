@@ -17,12 +17,8 @@ import re
 
 iris = datasets.load_iris()
 
-tree = ET.parse('/media/kartini/Kuliah/KULIAH/Semester 6/Text Mining/dataset tugas/Training set/100850.xml')
-root = tree.getroot()
 
-path = '/media/kartini/Kuliah/KULIAH/Semester 6/Text Mining/dataset tugas/Training set'
-
-
+path = '/home/helmisatria/FALAH/Teks Mining/KlasifikasiBerita/Training set'
 
 headline = []
 isiBerita = []
@@ -46,11 +42,23 @@ for filename in os.listdir(path):
     for p in (root[indexText]):
         beritaPerP.append(p.text)
     isiBerita.append(beritaPerP)
-    
-for index, line in enumerate(headline):
-#    print(line)
-    headline.append(line.lower())
 
+headlineLower= []
+#deleteStopWordHeadline= []
+
+for index, line in enumerate(headline):
+    headlineLower+=(nltk.word_tokenize(line.lower()))
+#    deleteStopWordHeadline.append(re.sub('[--.()/!@#$,"1234567890}',headlineLower)
+
+isiBeritaTokenisasi = []
+#deleteStopWordBerita = []
+for index, line in enumerate(isiBerita):
+    isiBeritaLower= []
+    for row, teks in enumerate(line):
+        isiBeritaLower.append(nltk.word_tokenize(teks.lower()))
+    isiBeritaTokenisasi.append(isiBeritaLower)
+#    deleteStopWordBerita.append(re.sub('[--.()/!@#$,"1234567890}',isiBeritaTokenisasi))
+#    
 #gnb = GaussianNB()
 #y_pred = gnb.fit(iris.data, iris.target).predict(iris.data)
 #print("Number of mislabeled points out of a total %d points : %d"
