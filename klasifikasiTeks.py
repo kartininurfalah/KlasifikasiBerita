@@ -12,13 +12,16 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn import svm
 import os
 import nltk
-
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem.porter import PorterStemmer
+stemming = PorterStemmer()
 import re
 
-iris = datasets.load_iris()
+#iris = datasets.load_iris()
 
 
-path = '/home/helmisatria/FALAH/Teks Mining/KlasifikasiBerita/Training set'
+path = '/home/helmisatria/@FALAH/KlasifikasiBerita/Training set'
 
 headline = []
 isiBerita = []
@@ -43,22 +46,34 @@ for filename in os.listdir(path):
         beritaPerP.append(p.text)
     isiBerita.append(beritaPerP)
 
-headlineLower= []
-#deleteStopWordHeadline= []
-
+headlineLower = ''
+headlineUnik=''
+deleteStopWordHeadline=''
+HeadlineTokenize=[]
+SteamingHeadline=[]
 for index, line in enumerate(headline):
-    headlineLower+=(nltk.word_tokenize(line.lower()))
-#    deleteStopWordHeadline.append(re.sub('[--.()/!@#$,"1234567890}',headlineLower)
+    headlineLower = (re.sub(r'[.,\/#!$%\^&\*;:{}=\-_+`~()\"{0-9}]', ' ',line))
+    deleteStopWordHeadline = word_tokenize(headlineLower.lower())
+    headlineUnik = sorted(set(deleteStopWordHeadline),key = str.lower)
+    HeadlineTokenize.append(headlineUnik)
 
-isiBeritaTokenisasi = []
-#deleteStopWordBerita = []
+IsiBeritaTokenisasiAll = []
+deleteStopWordBerita=''
+IsiBeritaUnik=[]
+
 for index, line in enumerate(isiBerita):
-    isiBeritaLower= []
+    isiBeritaLower=''
+    beritaUnik=''
+    IsiBeritaTokenisasi = []
+#    SteamingBerita=[]
     for row, teks in enumerate(line):
-        isiBeritaLower.append(nltk.word_tokenize(teks.lower()))
-    isiBeritaTokenisasi.append(isiBeritaLower)
-#    deleteStopWordBerita.append(re.sub('[--.()/!@#$,"1234567890}',isiBeritaTokenisasi))
-#    
+        isiBeritaLower =(re.sub(r'[.,\/#!$%\^&\*;:{}=\-_+`~()\"{0-9}]','',teks))
+        deleteStopWordBerita = word_tokenize(isiBeritaLower.lower())
+        beritaUnik = sorted(set(deleteStopWordBerita),key = str.lower)
+        IsiBeritaTokenisasi.append(beritaUnik)
+#        SteamingBerita.append(stemming.stem(IsiBeritaTokenisasi[row]))
+    IsiBeritaTokenisasiAll.append(IsiBeritaTokenisasi)
+   
 #gnb = GaussianNB()
 #y_pred = gnb.fit(iris.data, iris.target).predict(iris.data)
 #print("Number of mislabeled points out of a total %d points : %d"
