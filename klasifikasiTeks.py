@@ -17,11 +17,13 @@ from nltk.tokenize import word_tokenize
 from nltk.stem.porter import PorterStemmer
 stemming = PorterStemmer()
 import re
+import math
 
 #iris = datasets.load_iris()
 
 
 path = '/home/helmisatria/@FALAH/KlasifikasiBerita/Training set'
+Class=['YES', 'NO']
 
 headline = []
 isiBerita = []
@@ -50,7 +52,6 @@ headlineLower = ''
 headlineUnik=''
 deleteStopWordHeadline=''
 HeadlineTokenize=[]
-SteamingHeadline=[]
 for index, line in enumerate(headline):
     headlineLower = (re.sub(r'[.,\/#!$%\^&\*;:{}=\-_+`~()\"{0-9}]', ' ',line))
     deleteStopWordHeadline = word_tokenize(headlineLower.lower())
@@ -59,20 +60,49 @@ for index, line in enumerate(headline):
 
 IsiBeritaTokenisasiAll = []
 deleteStopWordBerita=''
-IsiBeritaUnik=[]
-
 for index, line in enumerate(isiBerita):
     isiBeritaLower=''
     beritaUnik=''
     IsiBeritaTokenisasi = []
-#    SteamingBerita=[]
     for row, teks in enumerate(line):
         isiBeritaLower =(re.sub(r'[.,\/#!$%\^&\*;:{}=\-_+`~()\"{0-9}]','',teks))
         deleteStopWordBerita = word_tokenize(isiBeritaLower.lower())
         beritaUnik = sorted(set(deleteStopWordBerita),key = str.lower)
         IsiBeritaTokenisasi.append(beritaUnik)
-#        SteamingBerita.append(stemming.stem(IsiBeritaTokenisasi[row]))
     IsiBeritaTokenisasiAll.append(IsiBeritaTokenisasi)
+
+# =============================================================================
+# Stemming 
+# =============================================================================
+StemmingBerita=[]
+StemmingHeadline=[]
+CountHeadline=[]
+for head,value in enumerate(HeadlineTokenize):
+    tempStem = []
+    for line,teks in enumerate(value):
+        tempStem.append(stemming.stem(teks))
+    StemmingHeadline.append(tempStem)
+for indeks1,value1 in enumerate(IsiBeritaTokenisasiAll):
+    temp1=[]
+    for indeks2, value2 in enumerate(value1):
+        temp2=[]
+        for indeks3,value3 in enumerate(value2):
+            temp2.append(stemming.stem(value3))
+        temp1.append(temp2)
+    StemmingBerita.append(temp1)
+
+for i,j in enumerate(StemmingHeadline):
+    tempCount=[]
+    for m,n in enumerate(j):
+        tempCount.append(j.count(n))
+    CountHeadline.append(tempCount)
+    
+Tf = []
+for x,y in enumerate(CountHeadline):
+   tempTF=[]
+   for indeks,num in enumerate(y):
+       tempTF.append(num / len(StemmingHeadline))
+   Tf.append(tempTF)
    
 #gnb = GaussianNB()
 #y_pred = gnb.fit(iris.data, iris.target).predict(iris.data)
