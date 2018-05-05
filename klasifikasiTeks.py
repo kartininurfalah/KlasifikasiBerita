@@ -7,36 +7,36 @@ Created on Tue Apr 24 14:55:05 2018
 """
 
 import xml.etree.ElementTree as ET
-from sklearn import datasets
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import cross_val_score
 from sklearn.naive_bayes import GaussianNB
 from sklearn import svm
 import os
-import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem.porter import PorterStemmer
 stemming = PorterStemmer()
 import re
-import math
 import numpy as np
-import pandas as pd
+from collections import Counter
 
 #iris = datasets.load_iris()
+TRAINCOUNT = 577
 
-
-PathTraining = '/home/helmisatria/@FALAH/KlasifikasiBerita/Training set'
-PathTesting = '/home/helmisatria/@FALAH/KlasifikasiBerita/Testing set'
-PathLabel = '/home/helmisatria/@FALAH/KlasifikasiBerita/Label kelas unt training dan testing set'
-Class=['YES', 'NO']
+PATHTRAINING = '/home/helmisatria/@FALAH/KlasifikasiBerita/Training set'
+PATHTESTING = '/home/helmisatria/@FALAH/KlasifikasiBerita/Testing set'
+PATHLABEL = '/home/helmisatria/@FALAH/KlasifikasiBerita/Label kelas unt traning dan testing set/Training set.txt'
+PATHLABELTEST = '/home/helmisatria/@FALAH/KlasifikasiBerita/Label kelas unt traning dan testing set/Testing set.txt'
+CLASS=['YES', 'NO']
 
 # =============================================================================
 # get Path
 # =============================================================================
 def getData(path):
-    headline = []
-    isiBerita = []
-    childRootAll = []
+    allDocuments = []
     for filename in os.listdir(path):
+        itemIds = ''
+        isiBerita = ''
         if not filename.endswith('.xml'): continue
         fullname = os.path.join(path, filename)
         tree = ET.parse(fullname)
@@ -45,135 +45,179 @@ def getData(path):
         childRoot = []
         for child in root:
             childRoot.append(child.tag)
-        childRootAll.append(childRoot)
         
         indexHeadline = childRoot.index('headline')
         indexText = childRoot.index('text')
         
-        headline.append(root[indexHeadline].text)
-        beritaPerP = []
+        itemIds = root.attrib.get('itemid')
+        isiBerita = root[indexHeadline].text
+        
         for p in (root[indexText]):
-            beritaPerP.append(p.text)
-        isiBerita.append(beritaPerP)
-    return headline, isiBerita
+            isiBerita += p.text
+        allDocuments.append([itemIds, isiBerita])
+            
+#        allDocuments.append(document)
+    
+    return sorted(allDocuments, key=lambda doc: doc[0])[:TRAINCOUNT]
 
 # =============================================================================
 # Tokenisasi
 # =============================================================================
-def tokenization(PreProses):
-    headlineLower = ''
-    deleteStopWordHeadline=''
-    HeadlineTokenize=[]
-    for index, line in enumerate(PreProses[0]):
-        headlineLower = (re.sub(r'[.,\/#!$%\^&\*;:{}=\-_+`~()\"{0-9}]', ' ',line))
-        deleteStopWordHeadline = word_tokenize(headlineLower.lower())
-    #    headlineUnik = sorted(set(deleteStopWordHeadline),key = str.lower)
-        HeadlineTokenize.append(deleteStopWordHeadline)
-    IsiBeritaTokenisasiAll = []
-    deleteStopWordBerita=''
-    for index, line in enumerate(PreProses[1]):
-        isiBeritaLower=''
-        IsiBeritaTokenisasi = []
-        for row, teks in enumerate(line):
-            isiBeritaLower =(re.sub(r'[.,\/#!$%\^&\*;:{}=\-_+`~()\"{0-9}]','',teks))
-            deleteStopWordBerita = word_tokenize(isiBeritaLower.lower())
-    #        beritaUnik = sorted(set(deleteStopWordBerita),key = str.lower)
-            IsiBeritaTokenisasi.append(deleteStopWordBerita)
-        IsiBeritaTokenisasiAll.append(IsiBeritaTokenisasi)
-    return HeadlineTokenize,IsiBeritaTokenisasiAll
+def Cleaning(AllDocuments):
+    CLEANDOCUMENTS = []
+    for i, document in enumerate(AllDocuments):
+        cleanContent = []
+        for j, content in enumerate(document):
+            if j == 0 :
+                cleanContent.append(content)
+                continue
+            stopWords = set(stopwords.words('english'))
+            cleanWords = (re.sub(r'[.,\/#!$%\^&\*;:{}=\-_+`~()\'\"{0-9}]', ' ',content.lower()))
+            words = word_tokenize(cleanWords)
+            wordsFilteredStemmed = []
+            
+            for w in words:
+                if w not in stopWords:
+                    wordsFilteredStemmed.append(stemming.stem(w))
+            
+            cleanContent.append(wordsFilteredStemmed)
+            
+        CLEANDOCUMENTS.append(cleanContent)
+    
+    return CLEANDOCUMENTS
 
 # =============================================================================
-# Stemming 
+# CORPUS
 # =============================================================================
-def stemmingData(dataTokenize):
-    StemmingBerita=[]
-    StemmingHeadline=[]
-    for head,value in enumerate(dataTokenize[0]):
-        tempStem = []
-        for line,teks in enumerate(value):
-            tempStem.append(stemming.stem(teks))
-        StemmingHeadline.append(tempStem)
-    for indeks1,value1 in enumerate(dataTokenize[1]):
-        temp1=[]
-        for indeks2, value2 in enumerate(value1):
-            temp2=[]
-            for indeks3,value3 in enumerate(value2):
-                temp2.append(stemming.stem(value3))
-            temp1.append(temp2)
-        StemmingBerita.append(temp1)
-    return StemmingHeadline,StemmingBerita
+
+def CORPUS(Data):
+    WORDS = []
+    for i, document in enumerate(Data):
+        for j, content in enumerate(document):
+            if j == 0: continue
+            for k, word in enumerate(content):
+                WORDS.append(word)
+    return WORDS
 
 # =============================================================================
 # count for TF
 # =============================================================================
-def countForTF(Data):
-    CountHeadline=[]
-    CountBerita=[]
-    for i,j in enumerate(Data[0]):
-        tempCount=[]
-        for m,n in enumerate(j):
-            tempCount.append(j.count(n))
-        CountHeadline.append(tempCount) 
-    for first,val in enumerate(Data[1]):
-        tempCount1=[]
-        for second,inVal in enumerate(val):
-            tempCount2=[]
-            for inside,value in enumerate(inVal):
-                tempCount2.append(inVal.count(value))
-            tempCount1.append(tempCount2)
-        CountBerita.append(tempCount1)
-    return CountHeadline, CountBerita
-
+def TF(Data, CORPUS):
+    RESULT = []
+    c = Counter(CORPUS)
+    for i, document in enumerate(Data):
+        dataTF = []
+        dataIDF = []
+        for j, word in enumerate(CORPUS):
+            countWord = document[1].count(word)
+            tf = countWord / len(document[1])
+            
+            countWordAllDocs = c[word]
+            idf = tf * np.log(len(Data) / countWordAllDocs)
+            
+            dataTF.append(tf)
+            dataIDF.append(idf)
+        RESULT.append([dataTF, dataIDF])
+    return [item[0] for item in RESULT], [item[1] for item in RESULT]
+    
 # =============================================================================
-# get value of TF
+# DATASET
 # =============================================================================
-def getTF(dataCount,dataStemm):
-    TfHeadline = []
-    for x,y in enumerate(dataCount[0]):
-       tempTF=[]
-       for indeks,num in enumerate(y):
-           tempTF.append(num / len(dataStemm[0]))
-       TfHeadline.append(tempTF)
-    TfBerita=[]
-    for first,val in enumerate(dataCount[1]):
-        tempTF1=[]
-        for second,inVal in enumerate(val):
-            tempTF2=[]
-            for inside,value in enumerate(inVal):
-                tempTF2.append(value / len(dataStemm[1]))
-            tempTF1.append(tempTF2)
-        TfBerita.append(tempTF1)
-    return TfHeadline, TfBerita
 
+LabelTrain   = np.genfromtxt(PATHLABEL, delimiter=' ', dtype=str)[:, 1][:TRAINCOUNT]
+LabelTest    = np.genfromtxt(PATHLABELTEST, delimiter=' ', dtype=str)[:, 1][:TRAINCOUNT]
+AllDocuments = getData(PATHTRAINING)
+isTesting=False
+# =============================================================================
+# 
+# Testing?
+# 
+#LabelTrain = LabelTest
+#AllDocuments = getData(PATHTESTING)
+#isTesting=True
+# 
+# =============================================================================
 # =============================================================================
 # Preproses Data Training
 # =============================================================================
-PreProses=getData(PathTraining)
-AllDataTokenize=tokenization(PreProses)
-DataStemming=stemmingData(AllDataTokenize)
-DataCount=countForTF(DataStemming)
-FindTF=getTF(DataCount, DataStemming)
+AllDocumentsTokenized = Cleaning(AllDocuments)
+Corpus                = set(CORPUS(AllDocumentsTokenized))
+Tf  , TfIdf           = TF(AllDocumentsTokenized, Corpus)
 
+# =============================================================================
+# SVM
+# =============================================================================
+
+def Accuracy(Data, Validator):
+    count = 0
+    for i, x in enumerate(Data):
+        if (x==Validator[i]): count+= 1
+    return count/len(Data)
+
+def SVM():
+    ids = [item[0] for item in AllDocumentsTokenized]
+    clf = svm.SVC(C=100, gamma=0.1)
+    clf.fit(TfIdf, LabelTrain)    
+    result = []
+    if (isTesting == False):
+        result = cross_val_score(clf, TfIdf, LabelTrain, cv=10)
+        
+        concatenated = np.column_stack((ids, clf.predict(TfIdf)))
+    else:
+        result = Accuracy(clf.predict(TfIdf), LabelTrain)
+        concatenated = np.column_stack((ids, clf.predict(TfIdf)))
+        
+    return result, concatenated
+
+AccuracySVM, SVMTrain = SVM()
+
+# =============================================================================
+# Naive Bayes
+# =============================================================================
+def NaiveBayes():
+    content = [item[1] for item in AllDocumentsTokenized][:TRAINCOUNT]
+    concatenatedContent = []
+    for i, cont in enumerate(content):
+        concatenatedContent.append(' '.join(map(str, cont)))
+    vectorizer = CountVectorizer(concatenatedContent)
+    Generated = vectorizer.fit_transform(concatenatedContent).toarray()
+    
+    ids = [item[0] for item in AllDocumentsTokenized]
+    
+    clf = GaussianNB()
+    clf.fit(Generated, LabelTrain)
+    
+    result = []
+    if (isTesting == False):
+        result = cross_val_score(clf, Generated, LabelTrain, cv=10)
+        
+        concatenated = np.column_stack((ids, clf.predict(Generated)))
+    else:
+        result = Accuracy(clf.predict(Generated), LabelTrain)
+        concatenated = np.column_stack((ids, clf.predict(Generated)))
+    
+    return result, concatenated
+
+AccuracyNaiveBayes, NaiveBayesTrain = NaiveBayes()
+
+#WordImportant=deleteStopWords(corp)
+#DataCount=TF(DataStemming)
+#DataCorpus=CORPUS(DataStemming)
+#DataCount=countForTF(DataStemming)
+#FindTF=getTF(DataCount, DataStemming)
+
+#IdfHeadline=[]
+#for outer,valInside in enumerate(DataStemming[0]):
+#    tempIDF=[]
+#    for inside,valHL in enumerate(valInside):
+#        print(valInside.count(valHL))
+#        tempIDF.append(np.log(len(DataStemming[0]) / (valInside.count(valHL))))
+#    IdfHeadline.append(tempIDF)
 # =============================================================================
 # Preproses Data Testing
 # =============================================================================
-getDataTesting=getData(PathTesting)
-tokenizeTesting=tokenization(getDataTesting)
-DataTestStemming=stemmingData(tokenizeTesting)
-countDataTest=countForTF(DataTestStemming)
-GetTFTesting=getTF(countDataTest,DataTestStemming)
-
-#gnb = GaussianNB()
-#y_pred = gnb.fit(iris.data, iris.target).predict(iris.data)
-#print("Number of mislabeled points out of a total %d points : %d"
-#      (iris.data.shape[0],(iris.target != y_pred).sum()))
-##Number of mislabeled points out of a total 150 points : 6
-#
-#X = [[0, 0], [1, 1]]
-#y = [0, 1]
-#clf = svm.SVC()
-#clf.fit(X, y)  
-#SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
-#    decision_function_shape='ovr', degree=3, gamma='auto', kernel='rbf',
-#    max_iter=-1, probability=False, random_state=None, shrinking=True,
-#    tol=0.001, verbose=False)
+#getDataTesting=getData(PATHTESTING)
+#tokenizeTesting=tokenization(getDataTesting)
+#DataTestStemming=stemmingData(tokenizeTesting)
+#countDataTest=countForTF(DataTestStemming)
+#GetTFTesting=getTF(countDataTest,DataTestStemming)
